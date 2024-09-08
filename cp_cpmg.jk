@@ -1,0 +1,73 @@
+; CP/CPMG Pulse Sequence
+; July 2023, updated by JK
+; Standardized pulse sequence for spin-1/2 and quadrupolar nuclei
+
+;parameters:
+;ns : 16 * n
+;d1 : recycle delay
+;d2 : echo delay (d6/2)
+;d3 : time to allow pulse ringdown, 10 to 100 us
+;d6 : enter duration of FID
+;pl1 : not used
+;pl2 : not used
+;pl3 : power of 1H pi/2
+;pl4 : X contact power
+;pl6 : refocusing pulse on X channel
+;pl9 : Decoupling power
+;p3 : excitation pulse length on 1H channel
+;p4 : contact pulse length
+;p6 : refocusing pulse length on X channel
+;sp0 : 1H channel contact pulse.
+;l22 : # of echos to be acquired
+;cnst1 : set td > cnst1
+;cnst11 : to adjust t=0 for acquisition, if digmod = baseopt
+;$OWNER= J. Kimball
+
+#include <Avance.incl>
+#include <De.incl>
+"d11=30m"
+define delay del3
+"d2=d6/2"      ; half echo delay
+"del3=d3-1u"  
+"cnst1=((d6+d3*2+p6)*l22+d6)/dw"
+define delay rest
+"rest=aq-(cnst1*dw)"
+define delay del2
+"del2=d2-2u"
+"acqt0=1u*cnst11"
+
+1 ze
+2 d11 do:f2
+  d1
+  10u reset1:f1                         ; reset NCO1 to 0 on channel 1
+  ACQ_START(ph30,ph31)
+  1u 
+  (p3 pl3 ph1):f2
+  (p4 pl4 ph2):f1 (p4:sp0 ph10):f2
+  1u pl9:f2
+  1u cw:f2
+  del2                                      ; echo delay                                   
+  del3                                 ; ring down delay
+  0.1u START_NEXT_SCAN 
+3 (p6 pl6 ph4):f1                          ; pi refocusing pulse
+  del3                                  
+  1u            
+  d6 REC_UNBLK                              ;acq. time                       
+  1u REC_BLK                            
+  del3                                  
+lo to 3 times l22                           ;loop to line 3
+  1u do:f2
+  rest
+  1u
+  rcyc=2
+  d11 mc #0 to 2 F0(zd)
+  
+exit
+
+ph0=0
+ph1=2 0 0 2
+ph10=1
+ph2=3 2
+ph4=1 0 1 0 3 2 3 2 3 2 3 2 1 0 1 0
+ph30=0
+ph31=2 3 0 1
